@@ -7,11 +7,13 @@ import uuid
 from flask import request, jsonify, make_response
 from uuid import uuid4
 import jwt
+from bson import ObjectId
 
 
 from utils.encrypt import generate_key, decrypt_data, encrypt_data, validate_jwt
 
 # Conexión a MongoDB y selección de colecciones
+#TODO: Manejar Mongo en un script diferente
 client = MongoClient("mongodb://root:example@mongo:27017/")
 db = client.mydatabase
 users = db.users
@@ -21,6 +23,7 @@ sensitive_data_relations = db.sensitive_data_relations  # Nueva colección para 
 
 app = Flask(__name__)
 app.config.from_object('config')
+
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -48,12 +51,10 @@ def login():
 
     if bcrypt.checkpw(auth.get('password').encode('utf-8'), user['password']):
         user_id = str(user['_id'])  # Convert MongoDB ObjectId to string
-        token = jwt.encode({'sub': user_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
+        token = jwt.encode({'sub': user_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=app.app_contextconfig['JWT_EXPIRATION_MINUTES'])}, app.config['SECRET_KEY'])
         return jsonify({'token': token})
 
     return make_response('Could not verify',  401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
-
-
 
 @app.route('/store-sensitive-data', methods=['POST'])
 def store_sensitive_data():
@@ -119,12 +120,66 @@ def retrieve_sensitive_data():
 
     return jsonify({"decrypted_data": decrypted_data})
 
+@app.route('/update-credentials', methods=['PUT'])
+def update_credentials():
+    # Validar el token JWT del usuario
+    auth_token = request.headers.get('Authorization')
+    is_valid, message = validate_jwt(auth_token, app.config['SECRET_KEY'])
 
+    if not is_valid:
+        return make_response(jsonify({"message": message}), 401)
+
+    # Mongo espera que el campo sea un objeto ObjectID, basicamente un objeto de 12 bytes, no un str:python
+    user_id = ObjectId(message['sub'])
+    #user_id = message['sub']  # Asumiendo que el 'sub' (subject) del JWT contiene el ID del usuario
+
+    # Obtener los campos del cuerpo de la petición
+    current_password = request.json.get('current_password')
+    new_username = request.json.get('new_username')
+    new_password = request.json.get('new_password')
+
+    # Buscar el usuario en MongoDB
+    user = users.find_one({"_id": user_id})
+
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    # Verificar que las credenciales actuales sean correctas
+    if not bcrypt.checkpw(current_password.encode('utf-8'), user['password']):
+        return jsonify({"message": "Current password is incorrect"}), 401
+
+    # Actualizar el nombre de usuario y/o la contraseña si se proporcionan
+    update_fields = {}
+    if new_username:
+        update_fields["username"] = new_username
+    if new_password:
+        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+        update_fields["password"] = hashed_password
+
+    if update_fields:
+        users.update_one({"_id": user_id}, {"$set": update_fields})
+        return jsonify({"message": "Credentials updated successfully"}), 200
+
+    return jsonify({"message": "No fields to update"}), 400
 
 
 @app.route('/')
 def hello_world():
+    # Obtener el token JWT de la cabecera "Authorization"
+    auth_token = request.headers.get('Authorization')
+
+    # Comprobar si el token existe
+    if auth_token is None:
+        return make_response(jsonify({"message": "Authorization token is missing"}), 401)
+
+    # Validar el token utilizando la función existente
+    is_valid, message = validate_jwt(auth_token, app.config['SECRET_KEY'])
+
+    if not is_valid:
+        return make_response(jsonify({"message": message}), 401)
+
     return jsonify(message="Hello, World!")
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
