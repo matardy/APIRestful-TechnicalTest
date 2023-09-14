@@ -1,3 +1,3 @@
-# config.py
+# Archivo de configuracion.
 SECRET_KEY = 'mysecretkey'
-DEBUG = True
+JWT_EXPIRATION_MINUTES = 30
