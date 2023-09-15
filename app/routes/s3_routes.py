@@ -1,4 +1,3 @@
-# s3_routes.py
 from flask import request, jsonify, make_response
 from utils.encrypt import validate_jwt
 from utils.s3_operations import upload_file_to_s3, generate_presigned_url
@@ -36,9 +35,6 @@ def upload_profile_picture(users, app):
         return jsonify({"message": "Profile picture uploaded and user updated.", "filename": file.filename}), 200  # Usar el nombre del archivo real
     else:
         return jsonify({"message": f"Failed to upload: {filename_or_message}"}), 500
-
-
-
 
 def get_profile_picture_url(users, app):
     auth_token = request.headers.get('Authorization')

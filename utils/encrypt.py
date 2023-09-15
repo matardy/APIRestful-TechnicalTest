@@ -1,5 +1,6 @@
 from cryptography.fernet import Fernet
 import jwt
+
 # Generar clave de cifrado
 def generate_key():
     return Fernet.generate_key()
