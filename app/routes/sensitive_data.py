@@ -8,6 +8,9 @@ def store_sensitive_data(sensitive_data, sensitive_data_relations, app):
     auth_token = request.headers.get('Authorization')
     is_valid, message = validate_jwt(auth_token, app.config['SECRET_KEY'])
 
+    if auth_token is None:
+        return make_response(jsonify({"message": "Authorization token is missing"}), 401)
+
     if not is_valid:
         return make_response(jsonify({"message": message}), 401)
 
@@ -37,6 +40,9 @@ def retrieve_sensitive_data(sensitive_data, sensitive_data_relations, app):
     auth_token = request.headers.get('Authorization')
     
     is_valid, message = validate_jwt(auth_token, app.config['SECRET_KEY'])
+
+    if auth_token is None:
+        return make_response(jsonify({"message": "Authorization token is missing"}), 401)
 
     if not is_valid:
         return jsonify({"message": message}), 401
