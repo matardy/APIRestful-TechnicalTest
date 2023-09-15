@@ -19,8 +19,11 @@ def decrypt_data(encrypted_data, key):
 def validate_jwt(token, secret_key):
     try:
         # Si el token tiene el prefijo "Bearer ", quítalo
-        if token.startswith("Bearer "):
+        if token and token.startswith("Bearer "):
             token = token[7:]
+
+        if token is None:
+            return False, "No authorization token provided"
 
         decoded_token = jwt.decode(token, secret_key, algorithms=['HS256'])
         return True, decoded_token
@@ -28,6 +31,7 @@ def validate_jwt(token, secret_key):
         return False, "Token has expired"
     except jwt.InvalidTokenError:
         return False, "Invalid token"
+
 
 
 
