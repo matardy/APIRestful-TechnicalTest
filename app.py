@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from app.routes.authentication import register, login
 from app.routes.sensitive_data import store_sensitive_data, retrieve_sensitive_data
 from app.routes.update_credentials import update_credentials
+from app.routes.s3_routes import upload_profile_picture, get_profile_picture_url
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -44,6 +45,14 @@ def retrieve_sensitive_data_route():
 @app.route('/update-credentials', methods=['PUT'])
 def update_credentials_route():
     return update_credentials(users, app)
+
+@app.route('/upload-profile-picture', methods=['POST'])
+def upload_profile_picture_route():
+    return upload_profile_picture(users,app)
+
+@app.route('/get-profile-picture-url', methods=['GET'])
+def get_profile_picture_url_route():
+    return get_profile_picture_url(users, app)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

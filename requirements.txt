@@ -3,3 +3,5 @@ PyJWT
 pymongo==3.12.0
 bcrypt
 cryptography
+boto3
+python-dotenv

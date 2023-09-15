@@ -1,7 +1,6 @@
 from flask import request, jsonify, make_response
 from uuid import uuid4
 from utils.encrypt import generate_key, encrypt_data, validate_jwt, decrypt_data
-from bson import ObjectId
 from constants import DATA_STORED, DATA_NOT_FOUND, DATA_NOT_FOUND_TOKEN
 
 def store_sensitive_data(sensitive_data, sensitive_data_relations, app):
